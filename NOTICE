@@ -1,0 +1,7 @@
+This image bundles a pinned copy of plow-pbc/agent-index-client
+(https://github.com/plow-pbc/agent-index-client), fetched at build time per
+vendor/client.pin, under its own license (see that project).
+
+The instagram-social-selling skill and decision logic in this repository are
+adapted from the author's private social-selling-control-plane project, with
+client-specific data and identifiers removed. See engine_audit/README.md.

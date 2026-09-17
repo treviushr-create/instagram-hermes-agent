@@ -1,0 +1,24 @@
+# Copied from plow-agents/compose.example.yml, with this agent's AGENT_ID
+# added so the built-in usage reporter (image/s6-overlay/.../agent-index) has
+# something to report for. Register the id once — see README.md — before
+# setting it here.
+services:
+  agent:
+    build: .
+    environment:
+      AGENT_ID: instagram-social-selling # TODO(diogo): confirm the registered id matches
+    env_file:
+      - path: ./plow-credentials
+        required: false
+    volumes:
+      # The agent's home, kept across `up`/`down` for its sessions and setup.
+      # `docker compose down -v` starts this agent fresh, and is what an edit
+      # to persona.md or a skill needs before the agent sees it.
+      - agent-home:/var/lib/hermes
+    # The agent checkpoints on SIGTERM; its supervisor allows 30s, and
+    # Docker's default 10s cuts it off and orphans the transcript lease.
+    stop_grace_period: 35s
+    # No ports: the agent connects to Plow outbound.
+
+volumes:
+  agent-home:

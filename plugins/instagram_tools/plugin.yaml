@@ -1,0 +1,6 @@
+# Registers this plugin's tools with the Hermes gateway. Modeled on the shape
+# hermes-plugin-plow's plugin.yaml declares for plow_chat — see that repo for
+# the authoritative manifest schema before shipping this for real.
+id: instagram_tools
+version: "0.1.0"
+entrypoint: __init__.py
