@@ -1,13 +1,32 @@
 name: instagram-tools
 kind: backend
-version: 1.0.0
+version: 1.1.0
 description: >
-  Instagram DM/comment tools for this agent's social-selling skill: reading
-  new signals, qualifying them, and sending an owner-approved reply via the
-  official Meta API. Nothing here ever sends without the model having first
-  gotten the owner's explicit approval in this conversation.
+  Instagram DM/comment/mention tools for this agent's social-selling and
+  reputation-monitoring skills: reading new signals, qualifying sales intent,
+  triaging reputation risk, remembering confirmed business facts, and
+  sending an owner-approved reply via the official Meta API. Nothing here
+  ever sends or posts without the model having first gotten the owner's
+  explicit approval in this conversation.
 author: Diogo Vargas
 provides_tools:
   - instagram_fetch_signals
+  - instagram_fetch_mentions
+  - instagram_fetch_own_comments
   - instagram_qualify
+  - instagram_assess_reputation
+  - instagram_facts_get
+  - instagram_facts_set
+  - instagram_facts_remove
   - instagram_send_reply
+requires_env:
+  - name: INSTAGRAM_ACCESS_TOKEN
+    description: "Long-lived access token for the connected Instagram Business/Creator account, from the owner's own Meta app"
+    prompt: "Instagram access token"
+    secret: true
+    password: true
+  - name: INSTAGRAM_BUSINESS_ACCOUNT_ID
+    description: "The Instagram professional account's numeric id (from GET /me or GET /{page-id}?fields=instagram_business_account)"
+    prompt: "Instagram business account ID"
+    secret: false
+    password: false
