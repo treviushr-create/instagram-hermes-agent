@@ -95,6 +95,83 @@ def fetch_new_conversations(*, account_id: str | None = None) -> list[Signal]:
     return signals
 
 
+def fetch_new_tags(*, account_id: str | None = None) -> list[Signal]:
+    """Poll GET /{account}/tags for posts where someone tagged this account.
+
+    This is a different feed from mentions-in-a-comment (Meta only pushes
+    those through a webhook, which a Hermes agent has no inbound port to
+    receive) — tags on someone else's own post/reel are a plain, pollable
+    list, so that's the one this agent can actually watch reliably.
+    """
+    account = account_id or _account_id()
+    result = _request(
+        "GET",
+        f"{account}/tags",
+        params={"fields": "id,caption,media_type,permalink,timestamp,username"},
+    )
+    signals: list[Signal] = []
+    for media in result.get("data", []):
+        timestamp = media.get("timestamp")
+        occurred_at = (
+            datetime.fromisoformat(timestamp.replace("Z", "+00:00")) if timestamp else datetime.now(timezone.utc)
+        )
+        signals.append(
+            Signal(
+                external_event_id=media["id"],
+                account_id=account,
+                platform_user_id=media.get("username", ""),
+                kind=SignalKind.TAG,
+                occurred_at=occurred_at,
+                sender_username=media.get("username"),
+                text=media.get("caption", ""),
+                payload={"permalink": media.get("permalink", ""), "media_type": media.get("media_type", "")},
+            )
+        )
+    return signals
+
+
+def fetch_new_comments(*, account_id: str | None = None, recent_media_limit: int = 10) -> list[Signal]:
+    """Poll comments on the account's own recent posts.
+
+    Only checks the most recent `recent_media_limit` posts, not the whole
+    history — a comment on a six-month-old post is not a "new signal" worth
+    re-scanning every cycle, and scanning everything would make this call
+    grow without bound as the account posts more.
+    """
+    account = account_id or _account_id()
+    media_result = _request(
+        "GET",
+        f"{account}/media",
+        params={"fields": "id", "limit": str(recent_media_limit)},
+    )
+    signals: list[Signal] = []
+    for media in media_result.get("data", []):
+        media_id = media["id"]
+        comments_result = _request(
+            "GET",
+            f"{media_id}/comments",
+            params={"fields": "id,text,username,timestamp"},
+        )
+        for comment in comments_result.get("data", []):
+            timestamp = comment.get("timestamp")
+            occurred_at = (
+                datetime.fromisoformat(timestamp.replace("Z", "+00:00")) if timestamp else datetime.now(timezone.utc)
+            )
+            signals.append(
+                Signal(
+                    external_event_id=comment["id"],
+                    account_id=account,
+                    platform_user_id=comment.get("username", ""),
+                    kind=SignalKind.COMMENT,
+                    occurred_at=occurred_at,
+                    sender_username=comment.get("username"),
+                    text=comment.get("text", ""),
+                    payload={"media_id": media_id},
+                )
+            )
+    return signals
+
+
 def send_text_message(*, recipient_id: str, text: str) -> DeliveryReceipt:
     result = _request(
         "POST",

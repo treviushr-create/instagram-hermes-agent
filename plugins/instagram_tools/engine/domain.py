@@ -20,6 +20,7 @@ def utc_now() -> datetime:
 class SignalKind(StrEnum):
     DIRECT_MESSAGE = "direct_message"
     COMMENT = "comment"
+    TAG = "tag"  # someone tagged the account in their own post/reel
 
 
 class DraftState(StrEnum):
@@ -65,6 +66,19 @@ class Qualification:
     def __post_init__(self) -> None:
         if self.priority not in {"hot", "warm", "cold"}:
             raise ValueError("priority precisa ser hot, warm ou cold")
+
+
+@dataclass(frozen=True, slots=True)
+class ReputationAssessment:
+    """How much attention a tag/comment-about-you deserves — not a sales
+    score. 'risk' names why a human should look, not that it's dangerous."""
+
+    risk: str  # "flag" | "watch" | "info"
+    reasons: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        if self.risk not in {"flag", "watch", "info"}:
+            raise ValueError("risk precisa ser flag, watch ou info")
 
 
 @dataclass(frozen=True, slots=True)

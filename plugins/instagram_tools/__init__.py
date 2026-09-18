@@ -21,9 +21,10 @@ from datetime import datetime, timezone
 from functools import partial
 
 from . import graph_api, state
-from .engine.domain import Qualification, Signal, SignalKind
+from .engine.domain import Qualification, ReputationAssessment, Signal, SignalKind
 from .engine.ports import DeliveryReceipt
 from .qualification import qualify as _qualify
+from .reputation import assess as _assess_reputation
 
 TOOLSET = "instagram"
 
@@ -31,20 +32,43 @@ __all__ = [
     "Signal",
     "SignalKind",
     "Qualification",
+    "ReputationAssessment",
     "fetch_new_signals",
+    "fetch_new_mentions",
+    "fetch_new_own_comments",
     "qualify",
+    "assess_reputation",
     "send_reply",
     "register",
 ]
 
 
 def fetch_new_signals() -> list[Signal]:
-    """New DMs since the last poll, deduped against state.py.
-
-    Comments are not polled yet — add comment polling as its own function
-    later rather than overloading this one.
-    """
+    """New DMs since the last poll, deduped against state.py."""
     all_signals = graph_api.fetch_new_conversations()
+    new_signals = [s for s in all_signals if state.is_new(s.external_event_id)]
+    for signal in new_signals:
+        state.mark_seen(signal.external_event_id)
+    return new_signals
+
+
+def fetch_new_mentions() -> list[Signal]:
+    """New posts/reels where someone tagged this account, deduped.
+
+    Tags on someone else's own post, not @-mentions inside a comment — Meta
+    only pushes those through a webhook, which this agent has no inbound
+    port to receive (see graph_api.fetch_new_tags for why).
+    """
+    all_signals = graph_api.fetch_new_tags()
+    new_signals = [s for s in all_signals if state.is_new(s.external_event_id)]
+    for signal in new_signals:
+        state.mark_seen(signal.external_event_id)
+    return new_signals
+
+
+def fetch_new_own_comments() -> list[Signal]:
+    """New comments on the account's own recent posts, deduped."""
+    all_signals = graph_api.fetch_new_comments()
     new_signals = [s for s in all_signals if state.is_new(s.external_event_id)]
     for signal in new_signals:
         state.mark_seen(signal.external_event_id)
@@ -53,6 +77,10 @@ def fetch_new_signals() -> list[Signal]:
 
 def qualify(signal: Signal) -> Qualification:
     return _qualify(signal)
+
+
+def assess_reputation(signal: Signal) -> ReputationAssessment:
+    return _assess_reputation(signal)
 
 
 def send_reply(signal: Signal, text: str) -> DeliveryReceipt:
@@ -73,12 +101,12 @@ def send_reply(signal: Signal, text: str) -> DeliveryReceipt:
 
 _SIGNAL_SCHEMA = {
     "type": "object",
-    "description": "One Instagram DM/comment, as returned by instagram_fetch_signals.",
+    "description": "One Instagram DM/comment/tag, as returned by an instagram_fetch_* tool.",
     "properties": {
         "external_event_id": {"type": "string"},
         "account_id": {"type": "string"},
         "platform_user_id": {"type": "string", "description": "the sender's Instagram-scoped id"},
-        "kind": {"type": "string", "enum": ["direct_message", "comment"]},
+        "kind": {"type": "string", "enum": ["direct_message", "comment", "tag"]},
         "occurred_at": {"type": "string", "description": "ISO 8601 timestamp"},
         "sender_username": {"type": "string"},
         "text": {"type": "string"},
@@ -147,6 +175,28 @@ def _qualify_handler(args: dict) -> dict:
     return {"ok": True, "score": result.score, "priority": result.priority, "reasons": list(result.reasons)}
 
 
+def _fetch_mentions_handler(_args: dict) -> dict:
+    try:
+        signals = fetch_new_mentions()
+    except Exception as error:
+        return {"ok": False, "error": str(error)}
+    return {"ok": True, "signals": [_signal_to_dict(s) for s in signals]}
+
+
+def _fetch_own_comments_handler(_args: dict) -> dict:
+    try:
+        signals = fetch_new_own_comments()
+    except Exception as error:
+        return {"ok": False, "error": str(error)}
+    return {"ok": True, "signals": [_signal_to_dict(s) for s in signals]}
+
+
+def _assess_reputation_handler(args: dict) -> dict:
+    signal = _signal_from_args(args["signal"])
+    result = assess_reputation(signal)
+    return {"ok": True, "risk": result.risk, "reasons": list(result.reasons)}
+
+
 def _send_reply_handler(args: dict) -> dict:
     signal = _signal_from_args(args["signal"])
     try:
@@ -181,6 +231,51 @@ QUALIFY_TOOL = Tool(
     handler=_qualify_handler,
 )
 
+FETCH_MENTIONS = Tool(
+    name="instagram_fetch_mentions",
+    description=(
+        "New posts/reels where someone tagged this account, already deduped. "
+        "This is for reputation monitoring, not sales — call this "
+        "periodically (or when the owner asks 'did anyone tag me?') to see "
+        "if someone posted something about the owner worth knowing about. "
+        "Returns {ok: true, signals: [...]} or {ok: false, error}."
+    ),
+    parameters={"type": "object", "properties": {}, "additionalProperties": False},
+    handler=_fetch_mentions_handler,
+)
+
+FETCH_OWN_COMMENTS = Tool(
+    name="instagram_fetch_own_comments",
+    description=(
+        "New comments on the account's own recent posts, already deduped. "
+        "A public comment can carry either a sales question (use "
+        "instagram_qualify) or a reputation risk (use "
+        "instagram_assess_reputation) — check both, it's often not obvious "
+        "which from the text alone. Returns {ok: true, signals: [...]} or "
+        "{ok: false, error}."
+    ),
+    parameters={"type": "object", "properties": {}, "additionalProperties": False},
+    handler=_fetch_own_comments_handler,
+)
+
+ASSESS_REPUTATION_TOOL = Tool(
+    name="instagram_assess_reputation",
+    description=(
+        "Triage a tag or comment for reputation risk (flag/watch/info) — "
+        "different question from instagram_qualify, which scores buying "
+        "intent. Use this for signals from instagram_fetch_mentions, and "
+        "for comments that read like a public complaint rather than a "
+        "sales question."
+    ),
+    parameters={
+        "type": "object",
+        "properties": {"signal": _SIGNAL_SCHEMA},
+        "required": ["signal"],
+        "additionalProperties": False,
+    },
+    handler=_assess_reputation_handler,
+)
+
 SEND_REPLY_TOOL = Tool(
     name="instagram_send_reply",
     description=(
@@ -197,7 +292,14 @@ SEND_REPLY_TOOL = Tool(
     handler=_send_reply_handler,
 )
 
-TOOLS: tuple[Tool, ...] = (FETCH_SIGNALS, QUALIFY_TOOL, SEND_REPLY_TOOL)
+TOOLS: tuple[Tool, ...] = (
+    FETCH_SIGNALS,
+    FETCH_MENTIONS,
+    FETCH_OWN_COMMENTS,
+    QUALIFY_TOOL,
+    ASSESS_REPUTATION_TOOL,
+    SEND_REPLY_TOOL,
+)
 
 
 def _run(tool: Tool, args: dict, **_kwargs) -> str:
