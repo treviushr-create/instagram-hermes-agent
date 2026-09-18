@@ -1,11 +1,11 @@
 # Variant image: this agent's persona + skills + tools, on top of Plow's
 # Hermes base. See plow-pbc/plow-hermes-agent#building-a-variant-image.
 #
-# TODO(diogo): replace <sha> with the current base-<sha> tag published by
-# https://github.com/plow-pbc/plow-hermes-agent before the first build —
-# pinning by digest or immutable base-<sha> tag is required, `latest` is not
-# an option here.
-FROM public.ecr.aws/e1h7x4a2/plow-cloud-agents:base-<sha>
+# Pinned to the base image published for plow-hermes-agent's HEAD commit as of
+# 2026-09-18 (confirmed against public.ecr.aws/v2/e1h7x4a2/plow-cloud-agents/
+# tags/list). Re-check that tag list before the hackathon deadline in case the
+# base moved — `latest` is not an option here, only digest or base-<sha>.
+FROM public.ecr.aws/e1h7x4a2/plow-cloud-agents:base-0f4aaf0ca03caf82dda77e4c771bfa349aaed238
 
 # Identity: only what is specific to this agent. plow-init writes the home's
 # SOUL.md on every boot as the base persona followed by this file.

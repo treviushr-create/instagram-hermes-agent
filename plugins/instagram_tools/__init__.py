@@ -1,44 +1,59 @@
 """Instagram tools for the instagram-social-selling skill.
 
-`qualify` is real (see qualification.py) — it doesn't need the RealDeal
-engine at all, see engine_audit/README.md for why. `fetch_new_signals` and
-`send_reply` are still stubs: they need real Meta API credentials (Passo 5-8
-of the Meta setup) that don't exist yet. Shipping a fake reply engine that
-"sends" would be worse than not having one, so they raise on purpose rather
-than pretending.
+`qualify` doesn't need the RealDeal engine at all (see engine_audit/
+README.md). `fetch_new_signals` and `send_reply` now call the real Meta
+Graph API (graph_api.py) — they need INSTAGRAM_ACCESS_TOKEN and
+INSTAGRAM_BUSINESS_ACCOUNT_ID in the environment (Passo 5/6 of the Meta setup)
+to actually work; without them they raise DeliveryError rather than
+pretending to have sent something.
 """
 
 from __future__ import annotations
 
 from engine.domain import Qualification, Signal, SignalKind, utc_now
+from engine.ports import DeliveryReceipt
 
+from . import graph_api, state
 from .qualification import qualify as _qualify
 
-__all__ = ["Signal", "SignalKind", "Qualification", "fetch_new_signals", "qualify", "send_reply"]
+__all__ = [
+    "Signal",
+    "SignalKind",
+    "Qualification",
+    "fetch_new_signals",
+    "qualify",
+    "send_reply",
+]
 
 
 def fetch_new_signals() -> list[Signal]:
-    """Return Instagram DMs/comments received since the last check.
+    """New DMs since the last poll, deduped against state.py.
 
-    TODO: call the Meta Graph API (Instagram Business Login) with the
-    credentials from the Meta setup guide (INSTAGRAM_ACCESS_TOKEN,
-    INSTAGRAM_BUSINESS_ACCOUNT_ID). No control-plane code to wait on here —
-    this is a plain Graph API GET, same shape trevius-selling's
-    lib/instagram-api.ts already proved out, just in Python.
+    Comments are not polled yet — DMs are the higher-value, better-proven
+    path (trevius-selling's lib/instagram-api.ts already validated the send
+    side against the real API). Add comment polling as its own function
+    later rather than overloading this one.
     """
-    raise NotImplementedError("wire this to the Meta Graph API once app credentials exist")
+    all_signals = graph_api.fetch_new_conversations()
+    new_signals = [s for s in all_signals if state.is_new(s.external_event_id)]
+    for signal in new_signals:
+        state.mark_seen(signal.external_event_id)
+    return new_signals
 
 
 def qualify(signal: Signal) -> Qualification:
     return _qualify(signal)
 
 
-def send_reply(signal: Signal, text: str) -> None:
+def send_reply(signal: Signal, text: str) -> DeliveryReceipt:
     """Send an owner-approved reply back to the lead via the official API.
 
     Must only ever be called after explicit owner approval in the chat —
-    that rule lives in SKILL.md, not here, but this function is the last line
-    of defense: it should refuse to run without an approval token once one
-    exists.
+    that rule lives in SKILL.md, not here. This function does not itself
+    check for an approval token (the Hermes turn calling it is the thing
+    that must have already gated on approval); it is the transport, not the
+    policy.
     """
-    raise NotImplementedError("wire this to the Meta API send path")
+    if signal.kind == SignalKind.COMMENT:
+        return graph_api.reply_to_comment(comment_id=signal.platform_user_id, text=text)
+    return graph_api.send_text_message(recipient_id=signal.platform_user_id, text=text)

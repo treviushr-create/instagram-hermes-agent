@@ -1,0 +1,9 @@
+/plow-credentials
+.git
+
+# plow-agents' own credential scanner flags this file because it references
+# the token env var name in shell syntax — same pattern as the working
+# life-assistant-hermes-agent example this was copied from. No secret value
+# lives in this file; this allowlist only affects plow-agents' scan, not
+# Docker's real build context (Docker reads .dockerignore, never this file).
+image/s6-overlay/s6-rc.d/agent-index/run
