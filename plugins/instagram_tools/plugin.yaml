@@ -1,6 +1,13 @@
-# Registers this plugin's tools with the Hermes gateway. Modeled on the shape
-# hermes-plugin-plow's plugin.yaml declares for plow_chat — see that repo for
-# the authoritative manifest schema before shipping this for real.
-id: instagram_tools
-version: "0.1.0"
-entrypoint: __init__.py
+name: instagram-tools
+kind: backend
+version: 1.0.0
+description: >
+  Instagram DM/comment tools for this agent's social-selling skill: reading
+  new signals, qualifying them, and sending an owner-approved reply via the
+  official Meta API. Nothing here ever sends without the model having first
+  gotten the owner's explicit approval in this conversation.
+author: Diogo Vargas
+provides_tools:
+  - instagram_fetch_signals
+  - instagram_qualify
+  - instagram_send_reply
