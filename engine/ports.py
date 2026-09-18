@@ -1,9 +1,8 @@
 """Interfaces the instagram_tools plugin implements against.
 
-Same reasoning as domain.py: this is a fresh, minimal port set for this
-agent's own loop, not a trim of social-selling-control-plane's ports.py
-(which carries RDS/CRM/Calendar/audio-video integrations this agent has no
-use for, plus RealDeal-specific fact fields it must not inherit).
+Sized to exactly this agent's own loop (perceive -> qualify -> compose ->
+approve -> send) — no CRM/Calendar/audio-video integrations, no fact schema
+beyond what a single Instagram seller's DM/comment flow needs.
 """
 
 from __future__ import annotations

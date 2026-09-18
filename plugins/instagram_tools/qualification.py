@@ -1,16 +1,10 @@
 """Simple, honest qualification for one Instagram signal.
 
-Deliberately NOT a port of social-selling-control-plane's qualification.py/
-rules.py — those are ~2000 lines of regex tuned incident-by-incident to one
-client's high-ticket coaching sales script, and they earn their complexity by
-running unattended at scale with no per-message human approval.
-
-This agent's design is different: every draft this qualifier feeds into goes
-to the owner for approval before it ever reaches the lead (see SKILL.md). The
-human approval step is the safety net; this function's only job is deciding
-how loudly to ask for the owner's attention, not whether a message is safe to
-send. That is why a handful of keyword checks is the right amount of code
-here, not a gap to fill in later.
+Every draft this qualifier feeds into goes to the owner for approval before
+it ever reaches the lead (see SKILL.md). The human approval step is the
+safety net; this function's only job is deciding how loudly to ask for the
+owner's attention, not whether a message is safe to send — that is why a
+handful of keyword checks is the right amount of code here.
 """
 
 from __future__ import annotations

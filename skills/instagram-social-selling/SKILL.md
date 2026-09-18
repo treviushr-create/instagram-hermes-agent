@@ -38,7 +38,3 @@ O loop, ponta a ponta:
 - `instagram_tools.qualify(signal)` — score e prioridade do lead.
 - `instagram_tools.send_reply(signal_id, text)` — envia via API oficial da
   Meta, só depois de aprovação explícita do dono nesta conversa.
-
-Essas três funções ainda são um stub (ver `plugins/instagram_tools/__init__.py`)
-esperando a extração auditada do motor de decisão do control-plane — ver
-`engine_audit/README.md`.

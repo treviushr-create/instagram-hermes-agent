@@ -1,13 +1,8 @@
 """Thin client for the Instagram Graph API (Instagram Login for Business).
 
-Standard library only (urllib), on purpose — matches the convention every
-other Plow/plow-pbc project in this ecosystem follows (agent-index-client,
-plow-agents, social-selling-control-plane's core) and avoids adding a pip
-dependency the minimal Hermes base image doesn't already carry.
-
-Endpoint shapes (me/messages, {comment_id}/replies, access_token as a query
-param) are copied from trevius-selling's lib/instagram-api.ts, which already
-proved them out against the real API — not guessed at.
+Standard library only (urllib), on purpose — matches the convention Plow's
+own agent tooling follows (agent-index-client, plow-agents) and avoids
+adding a pip dependency the minimal Hermes base image doesn't already carry.
 """
 
 from __future__ import annotations
@@ -66,8 +61,7 @@ def fetch_new_conversations(*, account_id: str | None = None) -> list[Signal]:
     """Poll GET /me/conversations for DMs. No webhook here on purpose — a
 
     Hermes agent has no inbound port (it only connects to Plow outbound), so
-    polling is the only option, same as social-selling-control-plane's own
-    60s inbox safety-net read.
+    polling is the only option.
     """
     account = account_id or _account_id()
     result = _request(

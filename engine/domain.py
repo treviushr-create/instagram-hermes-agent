@@ -1,9 +1,8 @@
 """Core vocabulary for the Instagram social-selling loop.
 
-Written fresh for this agent rather than copied from social-selling-control-
-plane — see ../engine_audit/README.md for why. The shape (frozen dataclasses,
-StrEnum, __post_init__ validation) is the same pattern proven there; the
-fields are this agent's own, sized for SKILL.md's loop and nothing else.
+Frozen dataclasses, StrEnum, __post_init__ validation — fields sized for
+SKILL.md's loop (perceive -> qualify -> compose -> approve -> send) and
+nothing else.
 """
 
 from __future__ import annotations
