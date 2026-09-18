@@ -8,8 +8,8 @@ them they raise DeliveryError rather than pretending to have sent something.
 
 from __future__ import annotations
 
-from engine.domain import Qualification, Signal, SignalKind, utc_now
-from engine.ports import DeliveryReceipt
+from .engine.domain import Qualification, Signal, SignalKind, utc_now
+from .engine.ports import DeliveryReceipt
 
 from . import graph_api, state
 from .qualification import qualify as _qualify

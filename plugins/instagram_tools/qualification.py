@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import re
 
-from engine.domain import Qualification, Signal
+from .engine.domain import Qualification, Signal
 
 _BUYING_INTENT = re.compile(
     r"\b(?:pre[çc]o|quanto\s+custa|valor|comprar|onde\s+(?:eu\s+)?(?:consigo\s+)?compro|"

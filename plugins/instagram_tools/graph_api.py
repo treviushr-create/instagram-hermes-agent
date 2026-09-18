@@ -14,8 +14,8 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
-from engine.domain import Signal, SignalKind
-from engine.ports import DeliveryError, DeliveryReceipt
+from .engine.domain import Signal, SignalKind
+from .engine.ports import DeliveryError, DeliveryReceipt
 
 GRAPH = "https://graph.instagram.com/v24.0"
 

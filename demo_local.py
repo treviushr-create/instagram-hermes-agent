@@ -12,8 +12,7 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, ".")
 
-from engine.domain import Signal, SignalKind
-from plugins.instagram_tools import qualify
+from plugins.instagram_tools import Signal, SignalKind, qualify
 
 EXAMPLES = [
     "Oi, quanto custa o vestido azul que vc postou?",
