@@ -20,6 +20,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from functools import partial
 
+from . import facts as _facts
 from . import graph_api, state
 from .engine.domain import Qualification, ReputationAssessment, Signal, SignalKind
 from .engine.ports import DeliveryReceipt
@@ -39,6 +40,9 @@ __all__ = [
     "qualify",
     "assess_reputation",
     "send_reply",
+    "get_facts",
+    "set_fact",
+    "remove_fact",
     "register",
 ]
 
@@ -81,6 +85,18 @@ def qualify(signal: Signal) -> Qualification:
 
 def assess_reputation(signal: Signal) -> ReputationAssessment:
     return _assess_reputation(signal)
+
+
+def get_facts() -> dict[str, str]:
+    return _facts.get_all()
+
+
+def set_fact(key: str, value: str) -> dict[str, str]:
+    return _facts.set_fact(key, value)
+
+
+def remove_fact(key: str) -> bool:
+    return _facts.remove_fact(key)
 
 
 def send_reply(signal: Signal, text: str) -> DeliveryReceipt:
@@ -197,6 +213,23 @@ def _assess_reputation_handler(args: dict) -> dict:
     return {"ok": True, "risk": result.risk, "reasons": list(result.reasons)}
 
 
+def _get_facts_handler(_args: dict) -> dict:
+    return {"ok": True, "facts": get_facts()}
+
+
+def _set_fact_handler(args: dict) -> dict:
+    try:
+        facts = set_fact(args["key"], args["value"])
+    except ValueError as error:
+        return {"ok": False, "error": str(error)}
+    return {"ok": True, "facts": facts}
+
+
+def _remove_fact_handler(args: dict) -> dict:
+    removed = remove_fact(args["key"])
+    return {"ok": True, "removed": removed, "facts": get_facts()}
+
+
 def _send_reply_handler(args: dict) -> dict:
     signal = _signal_from_args(args["signal"])
     try:
@@ -276,6 +309,52 @@ ASSESS_REPUTATION_TOOL = Tool(
     handler=_assess_reputation_handler,
 )
 
+GET_FACTS_TOOL = Tool(
+    name="instagram_facts_get",
+    description=(
+        "Everything the owner has already confirmed about the business — "
+        "price, delivery time, payment methods, whatever came up before. "
+        "Call this BEFORE drafting any sales reply, so you don't ask the "
+        "owner something they already told you. Returns {ok: true, facts: "
+        "{key: value, ...}}."
+    ),
+    parameters={"type": "object", "properties": {}, "additionalProperties": False},
+    handler=_get_facts_handler,
+)
+
+SET_FACT_TOOL = Tool(
+    name="instagram_facts_set",
+    description=(
+        "Save one fact the owner just confirmed in this conversation (e.g. "
+        "key='preco_vestido_azul', value='R$89, entrega em 3 dias úteis'). "
+        "Call this right after the owner tells you something reusable, so "
+        "the next lead who asks the same thing doesn't require asking the "
+        "owner again. Never save something the owner didn't actually say."
+    ),
+    parameters={
+        "type": "object",
+        "properties": {
+            "key": {"type": "string", "description": "short snake_case identifier, e.g. 'preco_vestido_azul'"},
+            "value": {"type": "string"},
+        },
+        "required": ["key", "value"],
+        "additionalProperties": False,
+    },
+    handler=_set_fact_handler,
+)
+
+REMOVE_FACT_TOOL = Tool(
+    name="instagram_facts_remove",
+    description="Forget a fact — use when the owner corrects or retires something previously saved (price changed, item sold out, etc.).",
+    parameters={
+        "type": "object",
+        "properties": {"key": {"type": "string"}},
+        "required": ["key"],
+        "additionalProperties": False,
+    },
+    handler=_remove_fact_handler,
+)
+
 SEND_REPLY_TOOL = Tool(
     name="instagram_send_reply",
     description=(
@@ -298,6 +377,9 @@ TOOLS: tuple[Tool, ...] = (
     FETCH_OWN_COMMENTS,
     QUALIFY_TOOL,
     ASSESS_REPUTATION_TOOL,
+    GET_FACTS_TOOL,
+    SET_FACT_TOOL,
+    REMOVE_FACT_TOOL,
     SEND_REPLY_TOOL,
 )
 
