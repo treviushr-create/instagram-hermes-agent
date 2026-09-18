@@ -44,6 +44,7 @@ RUN set -eu; \
 # copy: everything under $HERMES_HOME belongs to the agent, so scheduling
 # that copy would run whatever a turn last wrote there, holding the relay
 # credential. Same reasoning as one-thing-hermes-agent's register_cron.py.
-COPY --chmod=0644 scripts/register_cron.py /opt/plow/instagram-cron/register_cron.py
+COPY scripts/register_cron.py /opt/plow/instagram-cron/register_cron.py
+RUN chmod 0644 /opt/plow/instagram-cron/register_cron.py
 
 COPY image/s6-overlay/ /etc/s6-overlay/
