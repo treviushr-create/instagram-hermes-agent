@@ -6,9 +6,14 @@ services:
   agent:
     build: .
     environment:
-      AGENT_ID: instagram-social-selling # TODO(diogo): confirm the registered id matches
+      AGENT_ID: instagram-social-selling
     env_file:
       - path: ./plow-credentials
+        required: false
+      # INSTAGRAM_ACCESS_TOKEN and INSTAGRAM_BUSINESS_ACCOUNT_ID from the
+      # Meta app setup (see README.md) — nothing to do with Plow, this is
+      # the seller's own Instagram Business Login credential.
+      - path: ./.env
         required: false
     volumes:
       # The agent's home, kept across `up`/`down` for its sessions and setup.
