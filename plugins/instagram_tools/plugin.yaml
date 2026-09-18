@@ -1,6 +1,6 @@
 name: instagram-tools
 kind: backend
-version: 1.1.0
+version: 1.2.0
 description: >
   Instagram DM/comment/mention tools for this agent's social-selling and
   reputation-monitoring skills: reading new signals, qualifying sales intent,
@@ -18,6 +18,10 @@ provides_tools:
   - instagram_facts_get
   - instagram_facts_set
   - instagram_facts_remove
+  - instagram_get_mode
+  - instagram_set_mode
+  - instagram_get_autopilot
+  - instagram_set_autopilot
   - instagram_send_reply
 requires_env:
   - name: INSTAGRAM_ACCESS_TOKEN

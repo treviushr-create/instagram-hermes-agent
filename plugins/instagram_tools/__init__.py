@@ -21,7 +21,7 @@ from datetime import datetime, timezone
 from functools import partial
 
 from . import facts as _facts
-from . import graph_api, state
+from . import graph_api, settings, state
 from .engine.domain import Qualification, ReputationAssessment, Signal, SignalKind
 from .engine.ports import DeliveryReceipt
 from .qualification import qualify as _qualify
@@ -43,6 +43,10 @@ __all__ = [
     "get_facts",
     "set_fact",
     "remove_fact",
+    "get_mode",
+    "set_mode",
+    "get_autopilot",
+    "set_autopilot",
     "register",
 ]
 
@@ -97,6 +101,22 @@ def set_fact(key: str, value: str) -> dict[str, str]:
 
 def remove_fact(key: str) -> bool:
     return _facts.remove_fact(key)
+
+
+def get_mode() -> str:
+    return settings.get_mode()
+
+
+def set_mode(mode: str) -> str:
+    return settings.set_mode(mode)
+
+
+def get_autopilot() -> bool:
+    return settings.get_autopilot()
+
+
+def set_autopilot(enabled: bool) -> bool:
+    return settings.set_autopilot(enabled)
 
 
 def send_reply(signal: Signal, text: str) -> DeliveryReceipt:
@@ -230,6 +250,26 @@ def _remove_fact_handler(args: dict) -> dict:
     return {"ok": True, "removed": removed, "facts": get_facts()}
 
 
+def _get_mode_handler(_args: dict) -> dict:
+    return {"ok": True, "mode": get_mode()}
+
+
+def _set_mode_handler(args: dict) -> dict:
+    try:
+        mode = set_mode(args["mode"])
+    except ValueError as error:
+        return {"ok": False, "error": str(error)}
+    return {"ok": True, "mode": mode}
+
+
+def _get_autopilot_handler(_args: dict) -> dict:
+    return {"ok": True, "autopilot": get_autopilot()}
+
+
+def _set_autopilot_handler(args: dict) -> dict:
+    return {"ok": True, "autopilot": set_autopilot(bool(args.get("enabled")))}
+
+
 def _send_reply_handler(args: dict) -> dict:
     signal = _signal_from_args(args["signal"])
     try:
@@ -355,6 +395,55 @@ REMOVE_FACT_TOOL = Tool(
     handler=_remove_fact_handler,
 )
 
+GET_MODE_TOOL = Tool(
+    name="instagram_get_mode",
+    description="Which mode the agent is running in right now: 'seller' (full sales loop + reputation) or 'creator' (reputation monitoring only, no sales drafting — for influencers, professionals, or anyone who wants monitoring without a selling assistant).",
+    parameters={"type": "object", "properties": {}, "additionalProperties": False},
+    handler=_get_mode_handler,
+)
+
+SET_MODE_TOOL = Tool(
+    name="instagram_set_mode",
+    description=(
+        "Switch mode. Only call this when the owner explicitly asks to "
+        "change it (e.g. 'não quero mais o modo de vendas, só me avise "
+        "quando me marcarem'). 'creator': reputation monitoring only, never "
+        "qualify/draft/send a sales reply. 'seller': the full loop."
+    ),
+    parameters={
+        "type": "object",
+        "properties": {"mode": {"type": "string", "enum": list(settings.MODES)}},
+        "required": ["mode"],
+        "additionalProperties": False,
+    },
+    handler=_set_mode_handler,
+)
+
+GET_AUTOPILOT_TOOL = Tool(
+    name="instagram_get_autopilot",
+    description="Whether the owner has authorized sending grounded, fact-based sales replies without waiting for per-message approval.",
+    parameters={"type": "object", "properties": {}, "additionalProperties": False},
+    handler=_get_autopilot_handler,
+)
+
+SET_AUTOPILOT_TOOL = Tool(
+    name="instagram_set_autopilot",
+    description=(
+        "Turn autopilot on or off. Only call this when the owner explicitly "
+        "says so (e.g. 'pode responder sozinho as perguntas óbvias' turns it "
+        "on; 'volta a me perguntar antes' turns it off). Turning it on does "
+        "NOT relax the never-invent-information rule — see SKILL.md for "
+        "exactly what autopilot is allowed to send without asking."
+    ),
+    parameters={
+        "type": "object",
+        "properties": {"enabled": {"type": "boolean"}},
+        "required": ["enabled"],
+        "additionalProperties": False,
+    },
+    handler=_set_autopilot_handler,
+)
+
 SEND_REPLY_TOOL = Tool(
     name="instagram_send_reply",
     description=(
@@ -380,6 +469,10 @@ TOOLS: tuple[Tool, ...] = (
     GET_FACTS_TOOL,
     SET_FACT_TOOL,
     REMOVE_FACT_TOOL,
+    GET_MODE_TOOL,
+    SET_MODE_TOOL,
+    GET_AUTOPILOT_TOOL,
+    SET_AUTOPILOT_TOOL,
     SEND_REPLY_TOOL,
 )
 
