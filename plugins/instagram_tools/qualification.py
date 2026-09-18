@@ -20,8 +20,9 @@ import re
 from engine.domain import Qualification, Signal
 
 _BUYING_INTENT = re.compile(
-    r"\b(?:pre[çc]o|quanto\s+custa|valor|comprar|onde\s+compro|"
-    r"tem\s+dispon[íi]vel|manda\s+o\s+link|como\s+fa[çc]o\s+pra\s+comprar)\b",
+    r"\b(?:pre[çc]o|quanto\s+custa|valor|comprar|onde\s+(?:eu\s+)?(?:consigo\s+)?compro|"
+    r"tem\s+dispon[íi]vel|manda\s+o\s+link|como\s+fa[çc]o\s+pra\s+comprar|"
+    r"tem\s+no\s+tamanho|pix)\b",
     re.IGNORECASE,
 )
 _QUESTION = re.compile(r"\?")
