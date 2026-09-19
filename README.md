@@ -71,18 +71,12 @@ instagram-hermes-agent/
 ├── Dockerfile.dockerignore       allowlist for plow-agents' own credential scanner
 ├── compose.yml                   self-hosted run: docker compose up --build -d
 ├── .env.example                  INSTAGRAM_ACCESS_TOKEN / INSTAGRAM_BUSINESS_ACCOUNT_ID
-├── vendor/client.pin             pinned+checksummed Agent Index usage-reporter client
 │
 ├── runtime/
 │   └── persona.md                who the agent is, appended to the base persona at boot
 │
 ├── skills/instagram-social-selling/
 │   └── SKILL.md                  the loop above, in the agent's own words
-│
-├── image/s6-overlay/s6-rc.d/agent-index/
-│   ├── run                       longrun: reports token usage to the Agent Index every 5 min
-│   ├── type                      "longrun"
-│   └── dependencies.d/plow-init  waits for identity before it starts
 │
 ├── plugins/instagram_tools/      the tools the model can actually call
 │   ├── plugin.yaml                name/kind/provides_tools manifest
