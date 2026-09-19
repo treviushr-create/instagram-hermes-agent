@@ -1,5 +1,5 @@
 # Copied from plow-agents/compose.example.yml, with this agent's AGENT_ID
-# added so the built-in usage reporter (image/s6-overlay/.../agent-index) has
+# added so the base image's usage reporter (s6 service agent-index) has
 # something to report for. Register the id once — see README.md — before
 # setting it here.
 services:
